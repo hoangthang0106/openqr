@@ -20,8 +20,11 @@ FROM base AS deps
 # as a pnpm patchedDependency and pnpm reads the patch file before resolving.
 COPY package.json pnpm-lock.yaml ./
 COPY patches ./patches
+# The original pnpm-lock.yaml pins Next.js 16.2.9. Re-resolve it during build
+# against the exact patched Next.js 16.4.5 in package.json.
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --no-frozen-lockfile \
+ && node -e "const v=require('./node_modules/next/package.json').version; if(v!=='16.4.5') {console.error('Wrong Next version:',v);process.exit(1)}"
 
 ################################################################################
 # Builder: compile the Next.js app in standalone mode

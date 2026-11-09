@@ -1,11 +1,35 @@
-# Self-host OpenQR from the published image. Pin a version tag in production
-# (check https://github.com/open-qr/openqr/releases); `latest` moves with every
-# release. Updates: `docker compose pull && docker compose up -d`.
-# Put a reverse proxy (Caddy, nginx, Traefik) in front for TLS; the container
-# serves plain HTTP on 3000.
+# OpenQR LAN build from your own fork. No public GHCR image is used.
+# Published host port: 18888 (must be available on the Docker host).
+# Do not add a Cloudflare Tunnel or router port-forward for this service.
 services:
   openqr:
-    image: ghcr.io/open-qr/openqr:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: openqr-lan:next16.4.5
+    container_name: openqr-lan
     restart: unless-stopped
+
     ports:
-      - "3000:3000"
+      - "18888:3000"
+
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /app/.next/cache:rw,nosuid,size=128m,uid=1001,gid=1001
+
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 100
+
+    logging:
+      driver: local
+      options:
+        max-size: "5m"
+        max-file: "2"
